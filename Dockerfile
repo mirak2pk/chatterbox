@@ -28,8 +28,7 @@ COPY requirements.txt .
 # Install Python dependencies with specific versions
 RUN pip install --no-cache-dir --upgrade pip
 COPY requirements.txt .
-RUN pip install --no-cache-dir --no-deps -r requirements.txt || \
-    pip install --no-cache-dir -r requirements.txt --force-reinstall
+RUN pip install --no-cache-dir --verbose -r requirements.txt 2>&1 | tee pip_install.log
 
 # Copy application code
 COPY . .
