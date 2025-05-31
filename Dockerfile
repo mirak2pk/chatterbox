@@ -1,5 +1,5 @@
-# Use NVIDIA's CUDA base image with Python 3.11
-FROM nvidia/cuda:12.1-devel-ubuntu22.04
+# Use RunPod's stable PyTorch base image (most compatible)
+FROM runpod/pytorch:2.0.1-py3.10-cuda11.8.0-devel-ubuntu22.04
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
@@ -8,23 +8,13 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3.11 \
-    python3.11-dev \
-    python3.11-distutils \
-    python3-pip \
     git \
     wget \
     curl \
     ffmpeg \
     libsndfile1 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create symbolic links for python
-RUN ln -s /usr/bin/python3.11 /usr/bin/python
-RUN ln -s /usr/bin/python3.11 /usr/bin/python3
-
-# Upgrade pip
-RUN python -m pip install --upgrade pip
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Set working directory
 WORKDIR /app
@@ -32,11 +22,15 @@ WORKDIR /app
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with specific versions
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
+
+# Add RunPod required dependencies
+RUN pip install --no-cache-dir runpod
 
 # Expose port
 EXPOSE 8000
