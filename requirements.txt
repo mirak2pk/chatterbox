@@ -36,5 +36,5 @@ tqdm>=4.64.0
 # pyaudio>=0.2.11
 # speechrecognition>=3.10.0
 
-# Optional: Better performance on NVIDIA GPUs
-flash-attn>=2.0.0; sys_platform != "darwin"
+# Optional: Better performance on NVIDIA GPUs (often fails to build, so commented out)
+# flash-attn>=2.0.0; sys_platform != "darwin"
