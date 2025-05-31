@@ -6,7 +6,7 @@ import base64
 import io
 from chatterbox.tts import ChatterboxTTS
 
-# Global model variable for caching
+# Global model variable for caching z
 model = None
 
 def initialize_model():
