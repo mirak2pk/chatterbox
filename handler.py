@@ -1,33 +1,56 @@
 import runpod
-import json
+import torch
+import torchaudio as ta
+import tempfile
+import base64
+import io
+from chatterbox.tts import ChatterboxTTS
+
+# Global model variable for caching
+model = None
+
+def initialize_model():
+    """Initialize the Chatterbox TTS model once."""
+    global model
+    if model is None:
+        print("Loading Chatterbox TTS model...")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        model = ChatterboxTTS.from_pretrained(device=device)
+        print(f"Model loaded on {device}")
+    return model
 
 def handler(event):
-    """
-    Handle incoming requests for the chatbot
-    """
+    """RunPod serverless handler for Chatterbox TTS"""
     try:
-        # Get input from the request
-        input_data = event.get("input", {})
+        tts_model = initialize_model()
         
-        # Extract the user message
-        user_message = input_data.get("message", "Hello!")
+        input_data = event.get('input', {})
+        text = input_data.get('text', '')
         
-        # Simple echo response (replace with your actual chatbot logic)
-        response = f"Echo: {user_message}"
+        if not text:
+            return {"error": "No text provided for synthesis"}
         
-        # Return the response
+        print(f"Generating TTS for: {text[:50]}...")
+        
+        # Generate speech
+        wav = tts_model.generate(text)
+        
+        # Convert to base64 audio
+        buffer = io.BytesIO()
+        ta.save(buffer, wav.unsqueeze(0), tts_model.sr, format="wav")
+        buffer.seek(0)
+        audio_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+        
         return {
-            "response": response,
-            "status": "success"
+            "audio_data": audio_b64,
+            "sample_rate": tts_model.sr,
+            "text": text
         }
         
     except Exception as e:
-        # Return error if something goes wrong
-        return {
-            "error": str(e),
-            "status": "failed"
-        }
+        print(f"Error: {str(e)}")
+        return {"error": f"TTS generation failed: {str(e)}"}
 
 if __name__ == "__main__":
-    # Start the RunPod serverless worker
+    print("Starting Chatterbox TTS RunPod Serverless Worker...")
     runpod.serverless.start({"handler": handler})
