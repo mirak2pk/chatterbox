@@ -6,6 +6,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
+# Use alternative mirrors to avoid 403 errors
+RUN sed -i 's|http://archive.ubuntu.com/ubuntu|http://us.archive.ubuntu.com/ubuntu|g' /etc/apt/sources.list
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     git \
