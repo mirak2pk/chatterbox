@@ -1,13 +1,26 @@
-chatterbox-tts==0.1.1
-fastapi==0.115.6
-uvicorn[standard]==0.32.1
-torch==2.5.1
-torchaudio==2.5.1
-librosa==0.10.2
-huggingface_hub==0.26.5
-numpy==1.26.4
-scipy==1.14.1
-soundfile==0.12.1
-pydantic==2.10.3
-python-multipart==0.0.19
-aiofiles==24.1.0
+# Core ML/AI Libraries
+torch>=2.0.0
+transformers>=4.30.0
+accelerate>=0.20.0
+
+# Audio Processing
+torchaudio>=2.0.0
+librosa>=0.10.0
+soundfile>=0.12.0
+
+# Web Framework
+fastapi>=0.100.0
+uvicorn>=0.22.0
+
+# Utilities
+numpy>=1.24.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+
+# Optional: Gradio for UI (uncomment if needed)
+# gradio>=3.35.0
+
+# Optional: Advanced audio processing (uncomment if needed)
+# pyaudio>=0.2.11
+# speechrecognition>=3.10.0
