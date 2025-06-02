@@ -47,6 +47,14 @@ def handler(event):
         voice_name = input_data.get('voiceName', 'Default')
         audio_data = input_data.get('audioData')  # Base64 encoded audio
         
+        # DETAILED DEBUG - Let's see what's actually being received
+        print(f"🔍 DEBUG - Full input_data keys: {list(input_data.keys())}")
+        print(f"🔍 DEBUG - audioData type: {type(audio_data)}")
+        if audio_data:
+            print(f"🔍 DEBUG - audioData length: {len(audio_data)}")
+            print(f"🔍 DEBUG - audioData preview (first 50): {audio_data[:50]}")
+            print(f"🔍 DEBUG - audioData preview (last 50): {audio_data[-50:]}")
+        
         print(f"📝 Text: {text[:50]}...")
         print(f"🎤 Voice ID: {voice_id}")
         print(f"🎭 Voice Name: {voice_name}")
@@ -61,6 +69,18 @@ def handler(event):
             try:
                 print("🎤 Voice cloning: Yes")
                 print(f"📦 Audio data length: {len(audio_data)} characters")
+                
+                # Additional base64 validation
+                if len(audio_data) < 100:
+                    print(f"⚠️ WARNING: Audio data is suspiciously short: {len(audio_data)} chars")
+                    print(f"⚠️ Raw audio data: '{audio_data}'")
+                    raise Exception(f"Audio data too short: {len(audio_data)} characters")
+                
+                # Add padding if needed for base64
+                missing_padding = len(audio_data) % 4
+                if missing_padding:
+                    audio_data += '=' * (4 - missing_padding)
+                    print(f"🔧 Added {4 - missing_padding} padding characters")
                 
                 # Decode base64 audio
                 audio_bytes = base64.b64decode(audio_data)
