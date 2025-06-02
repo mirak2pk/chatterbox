@@ -64,9 +64,33 @@ def handler(event):
         if not text:
             return {"error": "No text provided for synthesis"}
         
-        # Check if we have audio data for voice cloning
-        audio_prompt_path = None
-        if audio_data:
+        # 🔑 KEY FIX: Check if this is actually a default voice request
+        is_default_voice = (
+            not audio_data or 
+            audio_data == "" or 
+            voice_id == "default" or 
+            voice_name.lower() == "default" or
+            len(audio_data.strip()) < 100  # Too short to be real audio
+        )
+        
+        if is_default_voice:
+            print("🔊 DEFAULT VOICE REQUEST DETECTED")
+            print("🔊 Using built-in default voice (no voice cloning)")
+            
+            # Generate with default voice - NO audio_prompt_path
+            wav = tts_model.generate(
+                text=text,
+                exaggeration=exaggeration,
+                # NO audio_prompt_path = uses default voice
+            )
+            
+            voice_cloning_used = False
+            
+        else:
+            print("🎤 VOICE CLONING REQUEST DETECTED")
+            
+            # Check if we have audio data for voice cloning
+            audio_prompt_path = None
             try:
                 print("🎤 Voice cloning: Yes")
                 print(f"📦 Audio data length: {len(audio_data)} characters")
@@ -98,6 +122,14 @@ def handler(event):
                 voice_sample, sr = ta.load(audio_prompt_path)
                 print(f"🎵 Loaded voice sample: shape={voice_sample.shape}, sr={sr}")
                 
+                # Resample if needed
+                if sr != tts_model.sr:
+                    print(f"🔄 Resampling from {sr}Hz to {tts_model.sr}Hz")
+                    resampler = ta.transforms.Resample(sr, tts_model.sr)
+                    voice_sample = resampler(voice_sample)
+                    # Save resampled audio back to temp file
+                    ta.save(audio_prompt_path, voice_sample, tts_model.sr)
+                
             except Exception as e:
                 print(f"⚠️ Voice cloning setup failed: {str(e)}")
                 print(f"📋 Traceback: {traceback.format_exc()}")
@@ -105,55 +137,52 @@ def handler(event):
                 if audio_prompt_path and os.path.exists(audio_prompt_path):
                     os.unlink(audio_prompt_path)
                 audio_prompt_path = None
-        else:
-            print("🎤 Voice cloning: No (using default voice)")
-        
-        print("🎵 Generating speech...")
-        
-        # Generate speech with ChatterboxTTS
-        try:
-            if audio_prompt_path:
-                print("🎙️ Generating with voice cloning...")
-                print(f"🎤 Using audio_prompt_path: {audio_prompt_path}")
+            
+            print("🎵 Generating speech...")
+            
+            # Generate speech with ChatterboxTTS
+            try:
+                if audio_prompt_path:
+                    print("🎙️ Generating with voice cloning...")
+                    print(f"🎤 Using audio_prompt_path: {audio_prompt_path}")
+                    
+                    # ✅ CORRECT: Use audio_prompt_path parameter
+                    wav = tts_model.generate(
+                        text=text,
+                        audio_prompt_path=audio_prompt_path,  # ← This enables voice cloning!
+                        exaggeration=exaggeration,
+                    )
+                    print("✅ Voice cloning generation successful!")
+                    voice_cloning_used = True
+                    
+                    # Clean up temp file
+                    os.unlink(audio_prompt_path)
+                    print("🗑️ Cleaned up temp file")
+                    
+                else:
+                    print("🎤 Voice cloning failed, using default voice...")
+                    wav = tts_model.generate(
+                        text=text,
+                        exaggeration=exaggeration,
+                        # NO audio_prompt_path = uses default voice
+                    )
+                    voice_cloning_used = False
                 
-                # ✅ CORRECT: Use audio_prompt_path parameter
-                wav = tts_model.generate(
-                    text=text,
-                    audio_prompt_path=audio_prompt_path,  # ← This is the correct way!
-                    exaggeration=exaggeration,
-                    # cfg_weight=cfg_weight,  # Remove if not supported
-                    # temperature=temperature  # Remove if not supported
-                )
-                print("✅ Voice cloning generation successful!")
+                print("✅ Speech generation completed!")
                 
-                # Clean up temp file
-                os.unlink(audio_prompt_path)
-                print("🗑️ Cleaned up temp file")
+            except Exception as e:
+                print(f"❌ Generation failed: {str(e)}")
+                print(f"📋 Traceback: {traceback.format_exc()}")
                 
-            else:
-                print("🎤 Generating with default voice...")
-                wav = tts_model.generate(
-                    text=text,
-                    exaggeration=exaggeration,
-                    # cfg_weight=cfg_weight,  # Remove if not supported
-                    # temperature=temperature  # Remove if not supported
-                )
-            
-            print("✅ Speech generation completed!")
-            
-        except Exception as e:
-            print(f"❌ Generation failed: {str(e)}")
-            print(f"📋 Traceback: {traceback.format_exc()}")
-            
-            # Clean up temp file if it exists
-            if audio_prompt_path and os.path.exists(audio_prompt_path):
-                os.unlink(audio_prompt_path)
-            
-            return {
-                "error": f"Speech generation failed: {str(e)}",
-                "traceback": traceback.format_exc(),
-                "status": "failed"
-            }
+                # Clean up temp file if it exists
+                if audio_prompt_path and os.path.exists(audio_prompt_path):
+                    os.unlink(audio_prompt_path)
+                
+                return {
+                    "error": f"Speech generation failed: {str(e)}",
+                    "traceback": traceback.format_exc(),
+                    "status": "failed"
+                }
         
         # Convert to base64 audio
         print("📤 Converting to base64...")
@@ -169,13 +198,14 @@ def handler(event):
         duration = wav.shape[-1] / tts_model.sr
         
         print(f"🎉 Success! Duration: {duration:.2f}s, Audio size: {len(audio_b64)} chars")
+        print(f"🎤 Voice cloning used: {voice_cloning_used}")
         
         return {
             "audio_base64": audio_b64,
             "sample_rate": tts_model.sr,
             "duration_seconds": round(duration, 2),
             "text": text,
-            "voice_cloning_used": audio_prompt_path is not None,
+            "voice_cloning_used": voice_cloning_used,
             "voice_id": voice_id,
             "voice_name": voice_name,
             "status": "success"
