@@ -40,9 +40,8 @@ def handler(event):
         input_data = event.get('input', {})
         text = input_data.get('text', '')
         exaggeration = input_data.get('exaggeration', 0.5)
-        cfg_pace = input_data.get('cfgPace', 0.5)
-        temperature = input_data.get('temperature', 0.8)
-        random_seed = input_data.get('randomSeed', 0)
+        cfg_weight = input_data.get('cfg_weight', 0.5)
+        temperature = input_data.get('temperature', 0.7)
         
         # Voice cloning parameters
         voice_id = input_data.get('voiceId', 'default')
@@ -51,27 +50,19 @@ def handler(event):
         
         # Debug logging
         print(f"🔍 DEBUG - Full input_data keys: {list(input_data.keys())}")
-        print(f"🔍 DEBUG - Parameters:")
-        print(f"  - Text: {text[:50]}...")
-        print(f"  - Exaggeration: {exaggeration}")
-        print(f"  - CFG/Pace: {cfg_pace}")
-        print(f"  - Temperature: {temperature}")
-        print(f"  - Random Seed: {random_seed}")
-        print(f"  - Voice ID: {voice_id}")
-        print(f"  - Voice Name: {voice_name}")
-        
+        print(f"🔍 DEBUG - audioData type: {type(audio_data)}")
         if audio_data:
             print(f"🔍 DEBUG - audioData length: {len(audio_data)}")
             print(f"🔍 DEBUG - audioData preview (first 50): {audio_data[:50]}")
             print(f"🔍 DEBUG - audioData preview (last 50): {audio_data[-50:]}")
         
+        print(f"📝 Text: {text[:50]}...")
+        print(f"🎤 Voice ID: {voice_id}")
+        print(f"🎭 Voice Name: {voice_name}")
+        print(f"🎵 Audio data present: {audio_data is not None}")
+        
         if not text:
             return {"error": "No text provided for synthesis"}
-        
-        # Set random seed if provided (and not 0)
-        if random_seed and random_seed != 0:
-            torch.manual_seed(random_seed)
-            print(f"🎲 Set random seed to: {random_seed}")
         
         # 🔑 KEY FIX: Check if this is actually a default voice request
         is_default_voice = (
@@ -90,8 +81,6 @@ def handler(event):
             wav = tts_model.generate(
                 text=text,
                 exaggeration=exaggeration,
-                cfg_weight=cfg_pace,
-                temperature=temperature,
                 # NO audio_prompt_path = uses default voice
             )
             
@@ -157,13 +146,11 @@ def handler(event):
                     print("🎙️ Generating with voice cloning...")
                     print(f"🎤 Using audio_prompt_path: {audio_prompt_path}")
                     
-                    # ✅ CORRECT: Use audio_prompt_path parameter with all new parameters
+                    # ✅ CORRECT: Use audio_prompt_path parameter
                     wav = tts_model.generate(
                         text=text,
                         audio_prompt_path=audio_prompt_path,  # ← This enables voice cloning!
                         exaggeration=exaggeration,
-                        cfg_weight=cfg_pace,
-                        temperature=temperature,
                     )
                     print("✅ Voice cloning generation successful!")
                     voice_cloning_used = True
@@ -177,8 +164,6 @@ def handler(event):
                     wav = tts_model.generate(
                         text=text,
                         exaggeration=exaggeration,
-                        cfg_weight=cfg_pace,
-                        temperature=temperature,
                         # NO audio_prompt_path = uses default voice
                     )
                     voice_cloning_used = False
@@ -214,11 +199,6 @@ def handler(event):
         
         print(f"🎉 Success! Duration: {duration:.2f}s, Audio size: {len(audio_b64)} chars")
         print(f"🎤 Voice cloning used: {voice_cloning_used}")
-        print(f"🔧 Parameters used:")
-        print(f"  - Exaggeration: {exaggeration}")
-        print(f"  - CFG/Pace: {cfg_pace}")
-        print(f"  - Temperature: {temperature}")
-        print(f"  - Random Seed: {random_seed}")
         
         return {
             "audio_base64": audio_b64,
@@ -228,12 +208,6 @@ def handler(event):
             "voice_cloning_used": voice_cloning_used,
             "voice_id": voice_id,
             "voice_name": voice_name,
-            "parameters_used": {
-                "exaggeration": exaggeration,
-                "cfg_pace": cfg_pace,
-                "temperature": temperature,
-                "random_seed": random_seed
-            },
             "status": "success"
         }
         
