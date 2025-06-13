@@ -74,6 +74,8 @@ def handler(event):
             return {"error": "No text provided for synthesis"}
         
         # 🆕 PRIORITY 1: Try .pt file method (if available)
+        pt_file_success = False  # 🔧 CRITICAL FIX: Add success flag
+        
         if pt_file_data and voice_id != 'default':
             print("🎯 ATTEMPTING PT FILE VOICE LOADING...")
             print(f"📦 PT file for voice: {voice_id}")
@@ -103,6 +105,7 @@ def handler(event):
                 print("✅ PT FILE VOICE GENERATION SUCCESSFUL!")
                 voice_cloning_used = True
                 voice_method = "pt_file"
+                pt_file_success = True  # 🔧 CRITICAL FIX: Mark as successful
                 
                 # Restore original conditionals (cleanup)
                 tts_model.conds = original_conds
@@ -114,17 +117,17 @@ def handler(event):
                 
                 # Reset model state
                 tts_model.conds = getattr(tts_model, 'conds', None)
-                pt_file_data = None  # Disable pt file and try audio method
+                pt_file_success = False  # 🔧 CRITICAL FIX: Mark as failed
         
         # 🎤 PRIORITY 2: Original audio cloning method (UNCHANGED)
-        if not pt_file_data:  # Only if pt file wasn't used successfully
+        if not pt_file_success:  # 🔧 CRITICAL FIX: Only fallback if PT file failed
             # EXACT COPY of your existing logic - NO CHANGES
             is_default_voice = (
                 not audio_data or 
                 audio_data == "" or 
                 voice_id == "default" or 
                 voice_name.lower() == "default" or
-                len(audio_data.strip()) < 100  # Too short to be real audio
+                (audio_data and len(audio_data.strip()) < 100)  # Safe check for None
             )
             
             if is_default_voice:
