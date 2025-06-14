@@ -87,9 +87,13 @@ def handler(event):
                 
                 # Load the voice conditionals
                 pt_buffer = io.BytesIO(pt_bytes)
-                voice_conditionals = torch.load(pt_buffer, map_location=tts_model.device)
+                voice_conditionals = torch.load(
+                    pt_buffer, 
+                    map_location=tts_model.device,
+                    weights_only=False  # 🚨 ADDED THIS LINE
+                )
                 print(f"✅ Successfully loaded voice conditionals from .pt file")
-                
+                            
                 # Apply voice conditionals to model
                 original_conds = getattr(tts_model, 'conds', None)  # Backup original
                 tts_model.conds = voice_conditionals
