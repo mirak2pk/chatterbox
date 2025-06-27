@@ -24,7 +24,7 @@ def initialize_model():
             print("🚀 Loading Chatterbox TTS model...")
             device = "cuda" if torch.cuda.is_available() else "cpu"
             print(f"🖥️ Using device: {device}")
-            model = ChatterboxTTS.from_pretrained(device=device)
+            model = ChatterboxTTS.from_local("./src/chatterbox/models", device=device)
             print(f"✅ Model loaded successfully on {device}")
         except Exception as e:
             print(f"❌ Failed to load model: {str(e)}")
