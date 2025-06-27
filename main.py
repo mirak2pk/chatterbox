@@ -6,6 +6,7 @@ import io
 import os
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
+os.environ['HF_DATASETS_OFFLINE'] = '1'
 
 import tempfile
 import traceback
@@ -23,7 +24,7 @@ def initialize_model():
             print("🚀 Loading Chatterbox TTS model...")
             device = "cuda" if torch.cuda.is_available() else "cpu"
             print(f"🖥️ Using device: {device}")
-            model = ChatterboxTTS.from_pretrained("./src/chatterbox/models", device=device, local_files_only=True)
+            model = ChatterboxTTS.from_pretrained(device=device)
             print(f"✅ Model loaded successfully on {device}")
         except Exception as e:
             print(f"❌ Failed to load model: {str(e)}")
